@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Monitor — Jiox Restaurant Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --ink:#211F1C;--paper:#FBF7EF;--paper-line:#E4DCC8;
+    --stamp-red:#B23A34;--stamp-green:#3F6B4C;--stamp-amber:#B8842B;--muted:#8A8272;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--paper);font-family:'Inter',sans-serif;min-height:100vh;}
+  .wrap{max-width:1160px;margin:0 auto;padding:36px 24px 80px;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;border-bottom:1px solid #45413A;padding-bottom:22px;margin-bottom:28px;flex-wrap:wrap;}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;margin:0 0 6px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--stamp-amber);margin:0 0 6px;}
+  .sub{color:#B8B2A4;font-size:14px;max-width:480px;line-height:1.5;margin:0;}
+  .btn{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;padding:11px 16px;border-radius:7px;border:1px solid #45413A;background:#28261F;color:var(--paper);cursor:pointer;white-space:nowrap;}
+  .btn:hover{border-color:var(--stamp-amber);}
+  .btn.primary{background:var(--stamp-amber);color:var(--ink);border-color:var(--stamp-amber);}
+
+  .section-label{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:#9C9686;margin:36px 0 14px;}
+
+  /* Active orders board */
+  .board{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;}
+  .order-card{background:var(--paper);color:var(--ink);border-radius:6px;padding:18px;box-shadow:0 8px 20px -8px rgba(0,0,0,.5);}
+  .oc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .oc-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
+  .oc-order{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+  .oc-status{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;}
+  .oc-status.confirmed{background:#E8E1CE;color:var(--stamp-amber);}
+  .oc-status.ready{background:#E1EBE3;color:var(--stamp-green);}
+  .oc-status.waiting{background:#F0E4D0;color:var(--stamp-amber);}
+  .oc-status.issue{background:#F3DEDC;color:var(--stamp-red);}
+  .oc-status.done{background:#eee;color:#999;}
+  .oc-detail{font-size:12.5px;color:#5b5648;margin:8px 0;line-height:1.5;}
+  .timer{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;margin:10px 0;}
+  .timer.urgent{color:var(--stamp-red);}
+  .oc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .oc-actions .btn{color:var(--ink);border-color:var(--paper-line);background:#F1ECDF;font-size:11.5px;padding:8px 12px;}
+  .oc-actions .btn.green{background:var(--stamp-green);color:#fff;border-color:var(--stamp-green);}
+  .oc-actions .btn.red{background:var(--stamp-red);color:#fff;border-color:var(--stamp-red);}
+  .driver-check{background:#FDF6E3;border:1px dashed var(--stamp-amber);border-radius:6px;padding:10px;margin-top:10px;font-size:12px;}
+  .driver-check p{margin:0 0 8px;font-weight:600;}
+
+  /* Customer/history board (reused) */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:14px;}
+  .ticket{position:relative;background:var(--paper);color:var(--ink);border-radius:4px;padding:16px;box-shadow:0 6px 16px -8px rgba(0,0,0,.5);}
+  .ticket .t-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin:0 0 2px;}
+  .ticket .t-meta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+
+  .status-line{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--stamp-green);margin:14px 0 0;}
+  .status-line.err{color:var(--stamp-red);}
+
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:24px;z-index:50;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--paper);color:var(--ink);max-width:520px;width:100%;max-height:88vh;overflow-y:auto;border-radius:6px;padding:26px;position:relative;}
+  .modal h2{font-family:'Space Grotesk',sans-serif;margin:0 0 14px;font-size:20px;}
+  .close-btn{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);}
+  .field{width:100%;padding:10px 12px;border:1px solid var(--paper-line);border-radius:6px;font-size:13.5px;margin-bottom:10px;}
+  .field:focus{outline:none;border-color:var(--stamp-amber);}
+  .lookup-box{margin:14px 0;padding:12px;background:#F1ECDF;border-radius:6px;font-size:12.5px;}
+  .lookup-box .flag{color:var(--stamp-red);font-weight:600;}
+  .lookup-box .vip{color:var(--stamp-green);font-weight:600;}
+  .draft-box{width:100%;min-height:110px;padding:12px;border:1px solid var(--paper-line);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;margin:12px 0;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--stamp-green);color:#fff;padding:12px 20px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;z-index:100;opacity:0;transition:opacity .2s;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Jiox Restaurant Manager</p>
+      <h1>Order Monitor</h1>
+      <p class="sub">Every DoorDash order gets logged here manually as it comes in. You always make the final call — this just gets you the history and next step ready to go.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <label class="btn" id="dropZone" style="cursor:pointer;">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple style="display:none;">
+        Upload order history (.xlsx/.csv)
+      </label>
+      <button class="btn primary" id="newOrderBtn">+ New Order</button>
+    </div>
+  </header>
+
+  <p class="status-line" id="statusLine">Connecting to Firestore…</p>
+
+  <p class="section-label">Active orders</p>
+  <div class="board" id="board"><div style="color:#8A8272;font-family:'IBM Plex Mono',monospace;font-size:13px;">No active orders right now.</div></div>
+
+  <p class="section-label">Customer history</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalContent"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Paste your Firebase project config here (Console → Project
+   settings → General → Your apps → SDK config). Safe to be
+   public — access is controlled by Firestore security rules.
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const customersRef = db.collection('customers');
+const liveOrdersRef = db.collection('liveOrders');
+
+let customers = {};
+let liveOrders = {};
+
+function slugKey(name, phone){
+  return (String(name||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-') + '__' + String(phone||'').replace(/[^0-9]/g,'')) || 'unknown';
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtMoney(n){ return '$' + Number(n||0).toFixed(2); }
+
+/* ---------- live sync ---------- */
+function startListening(){
+  customersRef.onSnapshot(snap => {
+    customers = {}; snap.forEach(d => customers[d.id] = d.data());
+    document.getElementById('statusLine').textContent = Object.keys(customers).length + ' customers on file · live';
+    renderCustomers();
+  }, err => {
+    document.getElementById('statusLine').className='status-line err';
+    document.getElementById('statusLine').textContent = 'Firestore error: ' + err.message;
+  });
+
+  liveOrdersRef.where('status','!=','done').onSnapshot(snap => {
+    liveOrders = {}; snap.forEach(d => liveOrders[d.id] = d.data());
+    renderBoard();
+  });
+}
+
+/* ---------- customer risk logic ---------- */
+function computeStatus(rec){
+  if((rec.negativeCount||0) >= 2) return 'flagged';
+  if((rec.negativeCount||0) === 1) return 'watch';
+  if((rec.orderCount||0) >= 4 && (rec.negativeCount||0) === 0) return 'vip';
+  return 'standard';
+}
+
+async function findCustomer(name, phone){
+  const q = (name||'').trim().toLowerCase();
+  if(!q) return null;
+  return Object.entries(customers).map(([k,v]) => ({k,v}))
+    .find(({v}) => (v.name||'').toLowerCase().includes(q) || (phone && v.phone && v.phone.includes(phone)));
+}
+
+async function recordCustomerOrder(name, phone, orderNum, items, cost, outcome){
+  const id = slugKey(name, phone);
+  const ref = customersRef.doc(id);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data() : {name, phone: phone||'', orderCount:0, negativeCount:0, totalCharge:0};
+  const negative = outcome === 'disputed';
+  const updated = {
+    name, phone: phone || existing.phone || '',
+    orderCount: (existing.orderCount||0) + 1,
+    negativeCount: (existing.negativeCount||0) + (negative?1:0),
+    totalCharge: (existing.totalCharge||0) + (negative ? (parseFloat(cost)||0) : 0),
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await ref.set(updated, {merge:true});
+  await ref.collection('orders').add({
+    order: orderNum||'', item: items||'', charge: negative ? cost : '', comment: outcome==='disputed' ? 'Disputed on intake' : '',
+    platform:'DoorDash', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  return id;
+}
+
+/* ---------- bulk spreadsheet import ---------- */
+const FIELD_ALIASES = {
+  name:['customer name','customer','name','client','client name'],
+  phone:['phone','phone number','contact','mobile'],
+  orderNum:['order number','order #','order no','order id','order'],
+  item:['item','items','item details','product','order item','order details'],
+  charge:['error charge','error charges','charge','chargeback','refund','negative payout','payout','dispute amount','amount'],
+  comment:['comment','comments','note','notes','feedback','review'],
+  date:['date','order date','created']
+};
+function mapHeaders(headerRow){
+  const map = {};
+  headerRow.forEach((raw, idx) => {
+    const norm = String(raw).toLowerCase().trim();
+    for(const field in FIELD_ALIASES){
+      if(FIELD_ALIASES[field].some(a => norm.includes(a)) && !(field in map)) map[field] = idx;
+    }
+  });
+  return map;
+}
+function rowIsNegative(row){
+  const v = row.charge;
+  if(v===undefined||v===null||v==='') return false;
+  const num = parseFloat(String(v).replace(/[^0-9.\-]/g,''));
+  const s = String(v).toLowerCase();
+  return (!isNaN(num) && num !== 0) || /chargeback|dispute|refund|missing|never arrived|quality issue|error/.test(s);
+}
+async function importRow(row){
+  const id = slugKey(row.name, row.phone);
+  const ref = customersRef.doc(id);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data() : {name:row.name, phone:row.phone||'', orderCount:0, negativeCount:0, totalCharge:0};
+  const negative = rowIsNegative(row);
+  const chargeNum = parseFloat(String(row.charge||'0').replace(/[^0-9.\-]/g,'')) || 0;
+  await ref.set({
+    name: row.name, phone: row.phone || existing.phone || '',
+    orderCount: (existing.orderCount||0) + 1,
+    negativeCount: (existing.negativeCount||0) + (negative?1:0),
+    totalCharge: (existing.totalCharge||0) + (negative ? Math.abs(chargeNum) : 0),
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  }, {merge:true});
+  await ref.collection('orders').add({
+    order: row.orderNum||'', item: row.item||'', charge: row.charge||'', comment: row.comment||'',
+    platform:'DoorDash', date: row.date||'', negative, bulkImport:true,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+function processWorkbook(workbook){
+  const jobs = [];
+  workbook.SheetNames.forEach(sheetName => {
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header:1, defval:''});
+    if(rows.length < 2) return;
+    const headerMap = mapHeaders(rows[0]);
+    if(!('name' in headerMap)) return;
+    for(let i=1;i<rows.length;i++){
+      const r = rows[i];
+      if(!r || r.every(c => c==='')) continue;
+      const row = {};
+      for(const f in headerMap) row[f] = r[headerMap[f]];
+      if(!row.name) continue;
+      jobs.push(importRow(row));
+    }
+  });
+  return Promise.all(jobs).then(() => jobs.length);
+}
+function handleFiles(fileList){
+  document.getElementById('statusLine').textContent = 'Reading files…';
+  let filesLeft = fileList.length, totalRows = 0;
+  Array.from(fileList).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try{
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        totalRows += await processWorkbook(wb);
+      }catch(err){
+        showToast('Could not read ' + file.name + ': ' + err.message);
+      }
+      filesLeft--;
+      if(filesLeft===0) showToast(totalRows + ' rows imported.');
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+
+/* ---------- New Order intake ---------- */
+function openNewOrderModal(){
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="close-btn" id="closeModal">×</button>
+    <h2>New order from DoorDash</h2>
+    <input class="field" id="qName" placeholder="Customer name">
+    <input class="field" id="qPhone" placeholder="Phone (optional)">
+    <input class="field" id="qOrder" placeholder="Order number">
+    <input class="field" id="qItems" placeholder="Items">
+    <input class="field" id="qCost" placeholder="Order cost ($)">
+    <div id="lookupBox" class="lookup-box" style="display:none;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn primary" id="confirmBtn" style="flex:1;">Confirm order</button>
+      <button class="btn" id="disputeBtn" style="flex:1;background:#F1ECDF;color:var(--ink);">Dispute / flag issue</button>
+    </div>
+  `;
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+
+  const nameInput = document.getElementById('qName');
+  const phoneInput = document.getElementById('qPhone');
+  const lookupBox = document.getElementById('lookupBox');
+  let timer;
+  async function doLookup(){
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const match = await findCustomer(nameInput.value, phoneInput.value);
+      if(!nameInput.value.trim()){ lookupBox.style.display='none'; return; }
+      lookupBox.style.display='block';
+      if(match){
+        const status = computeStatus(match.v);
+        const label = status==='flagged' ? '<span class="flag">FLAGGED — repeat disputes</span>'
+                    : status==='watch' ? '<span class="flag">WATCH — 1 prior dispute</span>'
+                    : status==='vip' ? '<span class="vip">VIP — good history</span>' : 'Standard history';
+        lookupBox.innerHTML = `<b>Match found:</b> ${label}<br>Past orders: ${match.v.orderCount||0} · Disputes: ${match.v.negativeCount||0}`;
+      } else {
+        lookupBox.innerHTML = 'No history found — new customer.';
+      }
+    }, 250);
+  }
+  nameInput.addEventListener('input', doLookup);
+  phoneInput.addEventListener('input', doLookup);
+
+  document.getElementById('confirmBtn').addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if(!name){ nameInput.focus(); return; }
+    const orderNum = document.getElementById('qOrder').value.trim();
+    const items = document.getElementById('qItems').value.trim();
+    const cost = document.getElementById('qCost').value.trim();
+    await recordCustomerOrder(name, phoneInput.value.trim(), orderNum, items, cost, 'confirmed');
+    await liveOrdersRef.add({
+      name, phone: phoneInput.value.trim(), orderNum, items, cost,
+      status:'confirmed', confirmedAtMs: Date.now(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Order confirmed — ready-for-pickup timer started.');
+    closeModal();
+  });
+
+  document.getElementById('disputeBtn').addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if(!name){ nameInput.focus(); return; }
+    const orderNum = document.getElementById('qOrder').value.trim();
+    const items = document.getElementById('qItems').value.trim();
+    const cost = document.getElementById('qCost').value.trim();
+    const match = await findCustomer(name, phoneInput.value.trim());
+    await recordCustomerOrder(name, phoneInput.value.trim(), orderNum, items, cost, 'disputed');
+    openDisputeDraft(name, orderNum, items, cost, match);
+  });
+
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function openDisputeDraft(name, orderNum, items, cost, match){
+  const historyLine = match
+    ? `They've placed ${match.v.orderCount||0} order(s) with us, with ${match.v.negativeCount||0} prior dispute(s) on file.`
+    : `No prior order history on file for this customer.`;
+  const draft = `Hi DoorDash Support — flagging an issue with order #${orderNum||'[order number]'} for customer ${name}. Items: ${items||'[items]'}. Order cost: ${cost?('$'+cost):'[amount]'}. ${historyLine} Requesting review of this order before payout is finalized. Please advise on next steps.`;
+
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="close-btn" id="closeModal">×</button>
+    <h2>Dispute drafted</h2>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">Review, edit if needed, then copy this into your DoorDash Merchant support chat yourself.</p>
+    <textarea class="draft-box" id="draftText">${draft}</textarea>
+    <button class="btn primary" id="copyDraftBtn" style="width:100%;">Copy to clipboard</button>
+  `;
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.getElementById('copyDraftBtn').addEventListener('click', () => {
+    document.getElementById('draftText').select();
+    document.execCommand('copy');
+    showToast('Draft copied — paste it into DoorDash support chat.');
+  });
+}
+
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+/* ---------- Active orders board ---------- */
+function renderBoard(){
+  const board = document.getElementById('board');
+  const list = Object.entries(liveOrders);
+  if(list.length===0){
+    board.innerHTML = '<div style="color:#8A8272;font-family:\'IBM Plex Mono\',monospace;font-size:13px;">No active orders right now.</div>';
+    return;
+  }
+  board.innerHTML = list.map(([id, o]) => renderOrderCard(id, o)).join('');
+  list.forEach(([id]) => wireCardActions(id));
+}
+
+function statusBadge(status){
+  const map = {pending:['waiting','Needs review'], confirmed:['confirmed','Confirmed'], ready:['ready','Ready for pickup'], waiting:['waiting','Awaiting driver'], issue:['issue','Driver issue'], done:['done','Done']};
+  const [cls,label] = map[status] || ['confirmed', status];
+  return `<span class="oc-status ${cls}">${label}</span>`;
+}
+
+function renderOrderCard(id, o){
+  return `
+    <div class="order-card" data-id="${id}">
+      <div class="oc-top">
+        <div><div class="oc-name">${escapeHtml(o.name)}</div><div class="oc-order">#${escapeHtml(o.orderNum||'—')}</div></div>
+        ${statusBadge(o.status)}
+      </div>
+      <div class="oc-detail">${escapeHtml(o.items||'')} ${o.cost?('· $'+escapeHtml(String(o.cost))):''}</div>
+      <div class="timer-slot" data-role="timer"></div>
+      <div class="driver-check-slot"></div>
+      <div class="oc-actions" data-role="actions"></div>
+    </div>
+  `;
+}
+
+function wireCardActions(id){
+  const card = document.querySelector(`.order-card[data-id="${id}"]`);
+  if(!card) return;
+  const o = liveOrders[id];
+  const actions = card.querySelector('[data-role="actions"]');
+  const timerSlot = card.querySelector('[data-role="timer"]');
+  const driverSlot = card.querySelector('.driver-check-slot');
+
+  if(o.status === 'pending'){
+    driverSlot.innerHTML = `<div class="driver-check" style="border-color:var(--stamp-amber);"><p style="margin-bottom:4px;">Auto-captured from email — looking up history…</p><div id="lookup-${id}" style="font-size:12px;"></div></div>`;
+    findCustomer(o.name, o.phone).then(match => {
+      const box = document.getElementById(`lookup-${id}`);
+      if(!box) return;
+      if(match){
+        const status = computeStatus(match.v);
+        const label = status==='flagged' ? '<span style="color:var(--stamp-red);font-weight:600;">FLAGGED — repeat disputes</span>'
+                    : status==='watch' ? '<span style="color:var(--stamp-amber);font-weight:600;">WATCH — 1 prior dispute</span>'
+                    : status==='vip' ? '<span style="color:var(--stamp-green);font-weight:600;">VIP — good history</span>' : 'Standard history';
+        box.innerHTML = `${label} · ${match.v.orderCount||0} past orders, ${match.v.negativeCount||0} disputes`;
+      } else {
+        box.innerHTML = 'No history — new customer.';
+      }
+    });
+    actions.innerHTML = `<button class="btn green" data-act="confirm">Confirm order</button><button class="btn red" data-act="dispute">Dispute / flag</button>`;
+    actions.querySelector('[data-act="confirm"]').onclick = async () => {
+      await recordCustomerOrder(o.name, o.phone, o.orderNum, o.items, o.cost, 'confirmed');
+      await liveOrdersRef.doc(id).update({status:'confirmed', confirmedAtMs: Date.now()});
+      showToast('Order confirmed — ready-for-pickup timer started.');
+    };
+    actions.querySelector('[data-act="dispute"]').onclick = async () => {
+      const match = await findCustomer(o.name, o.phone);
+      await recordCustomerOrder(o.name, o.phone, o.orderNum, o.items, o.cost, 'disputed');
+      await liveOrdersRef.doc(id).update({status:'done'});
+      openDisputeDraft(o.name, o.orderNum, o.items, o.cost, match);
+    };
+  }
+
+  else if(o.status === 'confirmed'){
+    driverSlot.innerHTML = '';
+    const elapsed = Date.now() - (o.confirmedAtMs||Date.now());
+    const remaining = Math.max(0, 4*60*1000 - elapsed);
+    if(remaining <= 0){
+      liveOrdersRef.doc(id).update({status:'ready', readyAtMs: Date.now()});
+      return;
+    }
+    tickTimer(timerSlot, remaining, 'Ready for pickup in');
+    actions.innerHTML = `<button class="btn" data-act="markReadyNow">Mark ready now</button>`;
+    actions.querySelector('[data-act="markReadyNow"]').onclick = () => liveOrdersRef.doc(id).update({status:'ready', readyAtMs: Date.now()});
+  }
+
+  else if(o.status === 'ready'){
+    driverSlot.innerHTML = '';
+    timerSlot.innerHTML = '';
+    actions.innerHTML = `<button class="btn green" data-act="driverArrived">Driver arrived at store</button>
+                          <button class="btn" data-act="markDone">Mark picked up</button>`;
+    actions.querySelector('[data-act="driverArrived"]').onclick = () => liveOrdersRef.doc(id).update({status:'waiting', driverArrivedAtMs: Date.now()});
+    actions.querySelector('[data-act="markDone"]').onclick = () => liveOrdersRef.doc(id).update({status:'done'});
+  }
+
+  else if(o.status === 'waiting'){
+    const elapsed = Date.now() - (o.driverArrivedAtMs||Date.now());
+    const remaining = Math.max(0, 60*1000 - elapsed);
+    if(remaining > 0){
+      tickTimer(timerSlot, remaining, 'Checking in with driver in');
+      actions.innerHTML = `<button class="btn" data-act="markDone">Mark picked up</button>`;
+      actions.querySelector('[data-act="markDone"]').onclick = () => liveOrdersRef.doc(id).update({status:'done'});
+    } else {
+      timerSlot.innerHTML = '';
+      driverSlot.innerHTML = `
+        <div class="driver-check">
+          <p>Is the driver actually waiting at the store?</p>
+          <div style="display:flex;gap:8px;">
+            <button class="btn green" data-act="stillWaiting">Yes, still waiting</button>
+            <button class="btn red" data-act="notArrived">Didn't arrive</button>
+          </div>
+        </div>`;
+      driverSlot.querySelector('[data-act="stillWaiting"]').onclick = () => liveOrdersRef.doc(id).update({driverArrivedAtMs: Date.now()});
+      driverSlot.querySelector('[data-act="notArrived"]').onclick = () => openDriverIssueDraft(id, o);
+      actions.innerHTML = `<button class="btn" data-act="markDone">Mark picked up</button>`;
+      actions.querySelector('[data-act="markDone"]').onclick = () => liveOrdersRef.doc(id).update({status:'done'});
+    }
+  }
+}
+
+function tickTimer(slot, ms, label){
+  const mins = Math.floor(ms/60000);
+  const secs = Math.floor((ms%60000)/1000);
+  slot.innerHTML = `<div class="timer ${ms < 30000 ? 'urgent':''}">${label} ${mins}:${String(secs).padStart(2,'0')}</div>`;
+}
+
+function openDriverIssueDraft(id, o){
+  const draft = `Hi DoorDash Support — the assigned driver for order #${o.orderNum||'[order number]'} (customer ${o.name}) has not arrived at the store for pickup. Please unassign this driver and assign a new one for this order.`;
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="close-btn" id="closeModal">×</button>
+    <h2>Driver didn't arrive</h2>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">Copy this into your DoorDash support chat to request a new driver.</p>
+    <textarea class="draft-box" id="draftText">${draft}</textarea>
+    <button class="btn primary" id="copyDraftBtn" style="width:100%;">Copy to clipboard</button>
+  `;
+  document.getElementById('closeModal').addEventListener('click', () => {
+    closeModal();
+    liveOrdersRef.doc(id).update({status:'ready', driverArrivedAtMs: firebase.firestore.FieldValue.delete()});
+  });
+  document.getElementById('copyDraftBtn').addEventListener('click', () => {
+    document.getElementById('draftText').select();
+    document.execCommand('copy');
+    showToast('Draft copied.');
+  });
+  document.getElementById('modalBg').classList.add('open');
+}
+
+/* ---------- Customer history grid ---------- */
+function renderCustomers(){
+  const grid = document.getElementById('grid');
+  const list = Object.entries(customers).sort((a,b) => (b[1].orderCount||0)-(a[1].orderCount||0)).slice(0,30);
+  if(list.length===0){ grid.innerHTML = '<div style="color:#8A8272;font-size:13px;">No customer records yet.</div>'; return; }
+  grid.innerHTML = list.map(([k,rec]) => `
+    <div class="ticket">
+      <p class="t-name">${escapeHtml(rec.name||'')}</p>
+      <p class="t-meta">Orders: ${rec.orderCount||0} · Disputes: ${rec.negativeCount||0}</p>
+    </div>
+  `).join('');
+}
+
+/* ---------- ticking clock: re-render board every second for live timers ---------- */
+setInterval(renderBoard, 1000);
+
+document.getElementById('newOrderBtn').addEventListener('click', openNewOrderModal);
+document.getElementById('modalBg').addEventListener('click', e => { if(e.target.id==='modalBg') closeModal(); });
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+startListening();
+</script>
+</body>
+</html>
