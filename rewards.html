@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Spice Vault — The Sector 17</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#150f0a; --bg-2:#1c140d; --card:#241a11; --card-2:#2c1f13;
+    --line:#3d2c1a; --gold:#d9a441; --gold-bright:#f0c168; --chili:#c04a2e;
+    --chili-bright:#e2643f; --cardamom:#7fa06a; --cream:#f5ead9; --cream-dim:#c9b89b;
+    --shadow:0 30px 80px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--cream);
+    font-family:'Work Sans',sans-serif; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(217,164,65,.10), transparent 40%),
+      radial-gradient(circle at 88% 18%, rgba(192,74,46,.14), transparent 45%),
+      radial-gradient(circle at 50% 95%, rgba(127,160,106,.08), transparent 45%);
+    background-attachment:fixed;
+  }
+  .wrap{ max-width:1040px; margin:0 auto; padding:0 22px; }
+  section{ padding:74px 0; }
+  h1,h2,h3{ font-family:'Fraunces',serif; margin:0; }
+  a{ color:inherit; }
+
+  /* texture: subtle perforation / dot rule used as a section divider — evokes ticket stubs */
+  .perf{
+    height:1px; background-image:repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 16px);
+    margin:0 auto;
+  }
+
+  /* ---------- NAV ---------- */
+  nav{ position:sticky; top:0; z-index:40; backdrop-filter:blur(10px); background:rgba(21,15,10,.82); border-bottom:1px solid var(--line); }
+  nav .wrap{ display:flex; align-items:center; justify-content:space-between; padding:16px 22px; }
+  .brand{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; letter-spacing:.01em; }
+  .brand span{ color:var(--gold-bright); }
+  nav .cta{ font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.05em; text-transform:uppercase;
+    background:var(--chili); color:#fff; padding:10px 18px; border-radius:30px; text-decoration:none; white-space:nowrap; }
+  nav .cta:hover{ background:var(--chili-bright); }
+
+  /* ---------- HERO ---------- */
+  .hero{ padding:88px 0 60px; text-align:center; position:relative; }
+  .eyebrow{
+    font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.32em; text-transform:uppercase;
+    color:var(--gold-bright); margin-bottom:22px; display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .eyebrow::before, .eyebrow::after{ content:''; width:28px; height:1px; background:var(--line); }
+  .hero h1{ font-size:clamp(40px,7vw,72px); font-weight:900; line-height:1.03; letter-spacing:-.01em; }
+  .hero h1 .accent{ color:var(--chili-bright); font-style:italic; font-weight:600; }
+  .hero p.lede{ max-width:560px; margin:22px auto 0; color:var(--cream-dim); font-size:17.5px; line-height:1.65; }
+
+  /* the vault dial — signature element */
+  .dial-wrap{ display:flex; justify-content:center; margin:52px 0 12px; }
+  .dial{
+    width:168px; height:168px; border-radius:50%; position:relative;
+    background:radial-gradient(circle at 35% 30%, var(--card-2), var(--bg-2) 72%);
+    border:2px solid var(--line); box-shadow:0 0 0 8px rgba(217,164,65,.05), var(--shadow);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .dial::before{
+    content:''; position:absolute; inset:14px; border-radius:50%; border:1.5px dashed var(--line);
+  }
+  .dial .lock{ font-size:44px; filter:drop-shadow(0 0 14px rgba(217,164,65,.45)); animation:glow 3.2s ease-in-out infinite; }
+  @keyframes glow{ 0%,100%{ filter:drop-shadow(0 0 8px rgba(217,164,65,.3)); } 50%{ filter:drop-shadow(0 0 22px rgba(217,164,65,.65)); } }
+  .dial .tick{ position:absolute; width:2px; height:10px; background:var(--gold); border-radius:2px; opacity:.55; }
+
+  .cta-row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  .btn{
+    font-family:'Space Mono',monospace; font-size:13px; letter-spacing:.06em; text-transform:uppercase;
+    padding:15px 28px; border-radius:34px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .15s, filter .15s;
+  }
+  .btn:hover{ transform:translateY(-2px); }
+  .btn-primary{ background:var(--chili); color:#fff; }
+  .btn-primary:hover{ background:var(--chili-bright); }
+  .btn-outline{ border:1px solid var(--line); color:var(--cream); }
+  .btn-outline:hover{ border-color:var(--gold); color:var(--gold-bright); }
+
+  /* ---------- SAVINGS STRIP ---------- */
+  .strip{
+    display:flex; justify-content:center; gap:0; flex-wrap:wrap; margin-top:56px;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .strip .item{ flex:1; min-width:160px; text-align:center; padding:22px 16px; border-left:1px solid var(--line); }
+  .strip .item:first-child{ border-left:none; }
+  .strip .num{ font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--gold-bright); }
+  .strip .lbl{ font-size:11.5px; color:var(--cream-dim); text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .section-head{ text-align:center; max-width:560px; margin:0 auto 52px; }
+  .section-head .eyebrow{ justify-content:center; }
+  .section-head h2{ font-size:clamp(28px,4vw,38px); font-weight:700; }
+  .section-head p{ color:var(--cream-dim); margin-top:12px; font-size:15.5px; line-height:1.6; }
+
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; counter-reset:step; }
+  @media(max-width:760px){ .steps{ grid-template-columns:1fr; } }
+  .step{
+    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 24px; position:relative;
+  }
+  .step .n{
+    font-family:'Fraunces',serif; font-size:15px; width:34px; height:34px; border-radius:50%;
+    background:var(--bg-2); border:1px solid var(--gold); color:var(--gold-bright);
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px;
+  }
+  .step h3{ font-size:17px; margin-bottom:8px; }
+  .step p{ color:var(--cream-dim); font-size:14px; line-height:1.6; margin:0; }
+
+  /* ---------- TIERS ---------- */
+  .tiers{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  @media(max-width:860px){ .tiers{ grid-template-columns:repeat(2,1fr); } .tiers .tier:last-child{ grid-column:1 / -1; } }
+  .tier{
+    background:linear-gradient(165deg, var(--card-2), var(--bg-2)); border:1px dashed var(--line);
+    border-radius:14px; padding:22px 14px; text-align:center; position:relative; overflow:hidden;
+  }
+  .tier.jackpot{ border-color:var(--gold); background:linear-gradient(165deg,#3a2712,#1c140d); }
+  .tier .heat{ font-size:22px; margin-bottom:8px; }
+  .tier .name{ font-family:'Fraunces',serif; font-weight:700; font-size:14.5px; }
+  .tier .odds{ font-family:'Space Mono',monospace; font-size:10.5px; color:var(--cream-dim); margin-top:8px; letter-spacing:.04em; }
+  .tier .veil{
+    position:absolute; inset:0; backdrop-filter:blur(5px); background:rgba(21,15,10,.35);
+    display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace;
+    font-size:10px; color:var(--cream-dim); letter-spacing:.05em; text-transform:uppercase; opacity:0; transition:opacity .2s;
+  }
+  .tier:hover .veil{ opacity:0; }
+
+  /* ---------- STREAK CALLOUT ---------- */
+  .streak{
+    background:var(--card); border:1px solid var(--gold); border-radius:18px; padding:36px 32px;
+    display:flex; align-items:center; gap:26px; flex-wrap:wrap;
+  }
+  .streak .icon{ font-size:40px; flex-shrink:0; }
+  .streak h3{ font-size:19px; margin-bottom:6px; }
+  .streak p{ color:var(--cream-dim); font-size:14.5px; line-height:1.6; margin:0; max-width:520px; }
+
+  /* ---------- WHY DIRECT ---------- */
+  .why{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:700px){ .why{ grid-template-columns:1fr; } }
+  .why .card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px; }
+  .why .card .tag{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--cardamom); }
+  .why .card h3{ font-size:18px; margin:8px 0 8px; }
+  .why .card p{ color:var(--cream-dim); font-size:14px; line-height:1.6; margin:0; }
+
+  /* ---------- FOOTER CTA ---------- */
+  .final{
+    text-align:center; background:radial-gradient(circle at 50% 0%, rgba(217,164,65,.12), transparent 60%);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .final h2{ font-size:clamp(26px,4vw,36px); font-weight:700; max-width:520px; margin:0 auto; }
+  .final p{ color:var(--cream-dim); margin:14px 0 30px; }
+
+  footer{ padding:36px 0 50px; text-align:center; color:var(--cream-dim); font-size:12.5px; }
+  footer .fbrand{ font-family:'Fraunces',serif; color:var(--cream); font-size:14px; margin-bottom:6px; }
+  footer .back-link{ display:inline-block; margin-top:14px; color:var(--gold-bright); font-family:'Space Mono',monospace; font-size:11.5px; text-decoration:none; letter-spacing:.04em; }
+  footer .back-link:hover{ text-decoration:underline; }
+
+  /* ---------- SCROLL REVEAL ---------- */
+  .reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none; }
+    .dial .lock{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">The Sector 17 <span>· Spice Vault</span></div>
+    <a class="cta" href="#claim">Claim a code</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">A Secret Reward, Every Order</div>
+    <h1>Every code<br><span class="accent">unlocks something.</span></h1>
+    <p class="lede">Order direct from The Sector 17 and every receipt hides a sealed code. Text it to us and find out what you won — nobody knows until the vault opens.</p>
+
+    <div class="dial-wrap">
+      <div class="dial" id="vaultDial">
+        <div class="lock">🔒</div>
+      </div>
+    </div>
+
+    <div class="cta-row" id="claim">
+      <a class="btn btn-primary" href="https://wa.me/10000000000?text=Hi!%20I%20have%20a%20Spice%20Vault%20code%20to%20claim" target="_blank" rel="noopener">
+        <i>💬</i> Text us your code
+      </a>
+      <a class="btn btn-outline" href="#tiers">See what you could win</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="strip">
+      <div class="item"><div class="num">100%</div><div class="lbl">Codes always win</div></div>
+      <div class="item"><div class="num">5</div><div class="lbl">Reward tiers</div></div>
+      <div class="item"><div class="num">1 in 5</div><div class="lbl">Guaranteed jackpot streak</div></div>
+      <div class="item"><div class="num">$0</div><div class="lbl">Delivery-app markup, direct orders</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="perf"></div></div>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">How It Works</div>
+      <h2>Three steps to your reward</h2>
+      <p>No app, no account, no fine print — just your next order.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <h3>Order and get your code</h3>
+        <p>Every order placed direct — online or in person — comes with a sealed code stamped on your receipt or bag.</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h3>Send it our way</h3>
+        <p>Text the code to our WhatsApp, or drop it in the comments on your next order. Either works.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h3>The vault opens</h3>
+        <p>We reveal your tier right there in the chat. Every single code wins — the only mystery is how much.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="perf"></div></div>
+
+<section id="tiers">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Reward Tiers</div>
+      <h2>Five tiers of heat</h2>
+      <p>Every code lands on one of these. The rarer the tier, the bigger the win.</p>
+    </div>
+    <div class="tiers">
+      <div class="tier"><div class="heat">🌶️</div><div class="name">Mild</div><div class="odds">Free Naan</div></div>
+      <div class="tier"><div class="heat">🌶️🌶️</div><div class="name">Medium</div><div class="odds">Free Drink</div></div>
+      <div class="tier"><div class="heat">🌶️🌶️🌶️</div><div class="name">Hot</div><div class="odds">25% Off</div></div>
+      <div class="tier"><div class="heat">🌶️🌶️🌶️🌶️</div><div class="name">Extra Hot</div><div class="odds">Free Appetizer</div></div>
+      <div class="tier jackpot"><div class="heat">🔥</div><div class="name">Thali Jackpot</div><div class="odds">Free Meal for Two</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="streak">
+      <div class="icon">🎯</div>
+      <div>
+        <h3>Every 5th code is a guaranteed jackpot.</h3>
+        <p>Text us the same phone number each time and we'll track your streak. Your 5th, 10th, 15th unlock — always the Thali Jackpot, no exceptions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="perf"></div></div>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Why Order Direct</div>
+      <h2>Same food, no middleman markup</h2>
+    </div>
+    <div class="why">
+      <div class="card">
+        <div class="tag">No app fees</div>
+        <h3>You pay what we charge</h3>
+        <p>Delivery apps add their own markup on top of our menu price. Ordering direct means the price you see is the price we set.</p>
+      </div>
+      <div class="card">
+        <div class="tag">Vault access</div>
+        <h3>Only direct orders get codes</h3>
+        <p>The Spice Vault is our way of saying thanks for skipping the app — codes only come with orders placed directly with us.</p>
+      </div>
+      <div class="card">
+        <div class="tag">Free delivery</div>
+        <h3>$25+ ships free</h3>
+        <p>Direct orders over $25 get free delivery, no subscription required.</p>
+      </div>
+      <div class="card">
+        <div class="tag">Real people</div>
+        <h3>Talk to us, not a bot</h3>
+        <p>Questions about your order or your code? Message us on WhatsApp and a real person answers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>Your next order is one code away.</h2>
+    <p>Order direct, get your code, see what you won.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://thesector17.com" >Order Direct Now</a>
+      <a class="btn btn-outline" href="https://wa.me/10000000000" target="_blank" rel="noopener">Message us on WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fbrand">The Sector 17</div>
+  Pittsburgh, PA · Direct orders only get vault access
+  <div><a class="back-link" href="https://thesector17.com">← Back to thesector17.com</a></div>
+</footer>
+
+<script>
+  // Generate 12 tick marks around the vault dial, evenly spaced
+  (function buildDialTicks(){
+    var dial = document.getElementById('vaultDial');
+    if(!dial) return;
+    var count = 12, radius = 76;
+    for(var i=0;i<count;i++){
+      var angle = (360 / count) * i;
+      var tick = document.createElement('div');
+      tick.className = 'tick';
+      tick.style.left = '50%';
+      tick.style.top = '6px';
+      tick.style.transformOrigin = '1px ' + (radius - 6) + 'px';
+      tick.style.transform = 'translateX(-50%) rotate(' + angle + 'deg)';
+      dial.appendChild(tick);
+    }
+  })();
+
+  // Scroll-reveal: fade/slide up each section as it enters the viewport
+  (function scrollReveal(){
+    var targets = document.querySelectorAll('section, .streak');
+    targets.forEach(function(el){ el.classList.add('reveal'); });
+    if(!('IntersectionObserver' in window)){
+      targets.forEach(function(el){ el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    targets.forEach(function(el){ io.observe(el); });
+  })();
+</script>
+
+</body>
+</html>
